@@ -46,11 +46,42 @@ Mantenha os identificadores técnicos em inglês quando eles forem usados para l
 
 Não remova as skills que estiverem em desenvolvimento. Mantenha-as em uma pasta `in-progress`, como no repositório original.
 
-## Instalação
+## Instalação correta
 
-Organize o resultado para que as skills possam ser copiadas para:
+O comando `cp -R skills/* ~/.openclaw/workspace/skills/` só funciona quando você já está dentro de uma pasta que contém `skills`. Executá-lo diretamente em `/root` causa o erro `cannot stat 'skills/*'`.
 
-`~/.openclaw/workspace/skills/`
+Depois de baixar o arquivo `openclaw-skills-ptbr.zip` para a VPS, execute:
+
+```bash
+cd /root
+unzip -q openclaw-skills-ptbr.zip
+mkdir -p /root/.openclaw/workspace/skills
+cp -a /root/openclaw-skills-ptbr/skills/. /root/.openclaw/workspace/skills/
+find /root/.openclaw/workspace/skills -name SKILL.md | wc -l
+```
+
+O último comando deve mostrar `38`.
+
+Se o arquivo ainda estiver no computador local, envie-o para a VPS com:
+
+```bash
+scp openclaw-skills-ptbr.zip root@IP_DA_VPS:/root/
+```
+
+Substitua `IP_DA_VPS` pelo endereço real da VPS.
+
+Não use `cp -R skills/*` antes de baixar e extrair o pacote.
+
+## Estrutura esperada
+
+Após a instalação, deve existir, por exemplo:
+
+```
+/root/.openclaw/workspace/skills/productivity/grill-me/SKILL.md
+/root/.openclaw/workspace/skills/engineering/tdd/SKILL.md
+```
+
+Depois da cópia, reinicie o agente ou o processo do OpenClaw para que ele recarregue as skills.
 
 Crie também um README em português com:
 
