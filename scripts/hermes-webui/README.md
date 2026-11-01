@@ -54,8 +54,8 @@ O script remove somente os dois mounts que criou, recria apenas o container do W
 - Não duplica o botão se o Compose já estiver configurado.
 - Interrompe se outros volumes já substituírem `panels.js` ou `onboarding.js`.
 - Salva backup local do Compose com permissão restrita (`0600`), pois ele pode conter informações sensíveis.
-- Monta os arquivos JS personalizados em modo somente leitura (`:ro`) e não modifica o código do Hermes Agent.
-- Recria apenas o serviço `hermes-webui`, após validar o Compose.
+- Monta os arquivos JS personalizados em modo somente leitura (`:ro`) em `/apptoo/static/`, a origem que o WebUI copia na inicialização. Isso evita o erro `Device or resource busy` que ocorre quando os arquivos são montados diretamente em `/app/static/`. Não modifica o código do Hermes Agent.
+- Recria apenas o serviço `hermes-webui`, após validar o Compose. A inicialização pode reinstalar dependências e demorar alguns instantes; confira o endpoint `/health`.
 - Permite reversão sem apagar outras alterações feitas depois no Compose.
 - Detecta a implementação nativa do PR oficial para evitar instalar duas vezes.
 
