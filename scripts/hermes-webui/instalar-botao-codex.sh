@@ -26,8 +26,8 @@ command -v python3 >/dev/null
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PATCH_FILE="$SCRIPT_DIR/codex-login-button.patch"
 TARGET="./customizations/codex-login-button"
-PANEL_MOUNT="      - $TARGET/panels.js:/app/static/panels.js:ro"
-ONBOARD_MOUNT="      - $TARGET/onboarding.js:/app/static/onboarding.js:ro"
+PANEL_MOUNT="      - $TARGET/panels.js:/apptoo/static/panels.js:ro"
+ONBOARD_MOUNT="      - $TARGET/onboarding.js:/apptoo/static/onboarding.js:ro"
 
 docker compose -f "$COMPOSE" config --quiet
 if [ "$MODE" = "--rollback" ]; then
@@ -93,7 +93,7 @@ if [ "$MODE" = "--check" ]; then
   exit 0
 fi
 
-if grep -Eq '/app/static/(panels|onboarding).js' "$COMPOSE"; then
+if grep -Eq '/(app|apptoo)/static/(panels|onboarding).js' "$COMPOSE"; then
   echo "O Compose ja substitui arquivos JS do WebUI. Pare para revisar os mounts." >&2
   exit 1
 fi
