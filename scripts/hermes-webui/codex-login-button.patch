@@ -1,0 +1,95 @@
+--- a/static/panels.js
++++ b/static/panels.js
+@@ -12519,6 +12519,35 @@
+       hint.style.color='var(--muted)';
+     }
+     body.appendChild(hint);
++    // OX local enhancement: reuse the existing server-owned Codex device-code OAuth flow.
++    if(p.id==='openai-codex' && p.key_source!=='config_yaml'){
++      const note=document.createElement('div');
++      note.className='provider-card-hint';
++      note.textContent='Conecte sua conta ChatGPT pelo navegador. Copie o código exibido aqui e informe na página de login.';
++      body.appendChild(note);
++      const row=document.createElement('div');
++      row.className='provider-card-row';
++      row.style.marginTop='10px';
++      const loginBtn=document.createElement('button');
++      loginBtn.id='codexOAuthBtn';
++      loginBtn.type='button';
++      loginBtn.className='provider-card-btn provider-card-btn-primary';
++      loginBtn.textContent=p.has_key?'Reconectar Codex (ChatGPT)':'Entrar com Codex (ChatGPT)';
++      loginBtn.addEventListener('click',()=>{
++        if(typeof startCodexOAuth!=='function'){
++          if(typeof showToast==='function') showToast('O fluxo OAuth não está disponível nesta versão.');
++          return;
++        }
++        startCodexOAuth();
++      });
++      row.appendChild(loginBtn);
++      body.appendChild(row);
++      const oauthFlow=document.createElement('div');
++      oauthFlow.id='codexOAuthFlow';
++      oauthFlow.style.display='none';
++      oauthFlow.style.marginTop='12px';
++      body.appendChild(oauthFlow);
++    }
+     card.appendChild(body);
+     header.addEventListener('click',()=>card.classList.toggle('open'));
+     return card;
+--- a/static/onboarding.js
++++ b/static/onboarding.js
+@@ -666,7 +666,12 @@
+     if(status==='success'){
+       _renderCodexOAuthTerminal('success','Credentials saved to the Hermes credential pool. Refreshing provider status…');
+       showToast(t('oauth_codex_success'));
+-      try{await loadOnboardingWizard();}catch(e){}
++      const providerFlowDiv=$('codexOAuthFlow');
++      if(providerFlowDiv && providerFlowDiv.closest('.provider-card[data-provider="openai-codex"]')){
++        try{await loadProvidersPanel();}catch(e){}
++      }else{
++        try{await loadOnboardingWizard();}catch(e){}
++      }
+     }else if(status==='expired'){
+       _renderCodexOAuthTerminal('expired','The code expired. Start a new login flow to try again.');
+     }else if(status==='cancelled'){
+@@ -685,6 +690,11 @@
+ async function startCodexOAuth(){
+   const flowDiv=$('codexOAuthFlow');
+   if(!flowDiv)return;
++  // A synchronous popup from the user click avoids browser popup blockers.
++  // The verified OpenAI URL is assigned only after the server returns the device code.
++  const fromProviderPanel=!!flowDiv.closest('.provider-card[data-provider="openai-codex"]');
++  const verificationTab=fromProviderPanel?window.open('about:blank','_blank'):null;
++  if(verificationTab){try{verificationTab.opener=null;}catch(_){}}
+   _clearCodexOAuthPoll();
+   _codexOAuthFlowId=null;
+   _setCodexOAuthButton(false);
+@@ -696,6 +706,20 @@
+     const{flow_id,user_code,verification_uri}=resp;
+     if(!flow_id||!user_code||!verification_uri) throw new Error('Invalid OAuth response');
+     _codexOAuthFlowId=flow_id;
++    if(verificationTab){
++      try{
++        const target=new URL(verification_uri);
++        if(target.protocol==='https:' && target.hostname==='auth.openai.com'){
++          verificationTab.location.href=target.href;
++        }else{
++          verificationTab.close();
++          throw new Error('Endereço de autenticação inesperado; login cancelado por segurança.');
++        }
++      }catch(e){
++        try{verificationTab.close();}catch(_){}
++        throw e;
++      }
++    }
+     flowDiv.innerHTML=`
+       <div class="onboarding-oauth-card onboarding-oauth-pending">
+         <div class="onboarding-oauth-icon">📋</div>
+@@ -713,6 +737,7 @@
+       </div>`;
+     _codexOAuthPollTimer=setTimeout(_pollCodexOAuth,Math.max(1000,Number(resp.poll_interval_seconds||3)*1000));
+   }catch(e){
++    if(verificationTab){try{verificationTab.close();}catch(_){}}
+     _clearCodexOAuthPoll();
+     _codexOAuthFlowId=null;
+     _renderCodexOAuthTerminal('error',(e&&e.message)||String(e));
