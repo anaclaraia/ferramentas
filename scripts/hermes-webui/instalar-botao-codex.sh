@@ -36,7 +36,9 @@ if [ "$MODE" = "--rollback" ]; then
     exit 0
   fi
   echo "Removendo apenas os dois mounts do botao Codex..."
-  cp -p "$COMPOSE" "$COMPOSE.bak-codex-rollback-$(date +%Y%m%d-%H%M%S)"
+  ROLLBACK_BACKUP="$COMPOSE.bak-codex-rollback-$(date +%Y%m%d-%H%M%S)"
+  cp -p "$COMPOSE" "$ROLLBACK_BACKUP"
+  chmod 600 "$ROLLBACK_BACKUP"
   python3 - "$COMPOSE" "$PANEL_MOUNT" "$ONBOARD_MOUNT" <<'PY'
 from pathlib import Path
 import sys
@@ -52,6 +54,16 @@ PY
   docker compose -f "$COMPOSE" up -d --no-deps --force-recreate hermes-webui
   echo "Reversao efetuada. Arquivos locais de backup foram preservados."
   exit 0
+fi
+
+# Uma segunda execucao nao pode sobrepor uma instalacao ja personalizada.
+if grep -Fq -- "$PANEL_MOUNT" "$COMPOSE"; then
+  if grep -Fq -- "$ONBOARD_MOUNT" "$COMPOSE"; then
+    echo "O botao Codex ja esta configurado neste Compose. Nada foi alterado."
+    exit 0
+  fi
+  echo "Mount parcial do botao Codex. Revise o Compose antes de continuar." >&2
+  exit 1
 fi
 
 [ -f "$PATCH_FILE" ] || { echo "Falta $PATCH_FILE (baixe o pacote completo do GitHub)." >&2; exit 1; }
